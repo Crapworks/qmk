@@ -1,0 +1,2 @@
+#define RGBLIGHT_SLEEP
+#define RGB_MATRIX_SLEEP
