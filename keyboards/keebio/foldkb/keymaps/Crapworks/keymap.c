@@ -5,10 +5,6 @@ enum layer {
     _SPECIAL,
 };
 
-// Milliseconds the backlight is off (or on) when blinking to show
-// caps lock is on. In other words, half the time of a full blink cycle.
-#define CAPS_LOCK_BLINK_MS 350
-
 // German special characters
 #define UML_AE RALT(KC_Q)
 #define UML_OE RALT(KC_P)
@@ -45,36 +41,33 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 };
 
-// The backlight level shows which layer we are in:
-// Special Layer = green, other (default) layer: blue
+// Light all LEDs red when caps lock is active.
+const rgblight_segment_t PROGMEM capslock_layer[] = RGBLIGHT_LAYER_SEGMENTS(
+    {4, 8, HSV_RED},
+    {0, 8, HSV_RED}
+);
+
+// Light all LEDs blue when special keyboard layer is active
+const rgblight_segment_t PROGMEM special_layer[] = RGBLIGHT_LAYER_SEGMENTS(
+    {4, 8, HSV_BLUE},
+    {0, 8, HSV_BLUE}
+);
+
+const rgblight_segment_t* const PROGMEM rgb_layers[] = RGBLIGHT_LAYERS_LIST(
+    capslock_layer,
+    special_layer
+);
+
+void keyboard_post_init_user(void) {
+    rgblight_layers = rgb_layers;
+}
+
+bool led_update_user(led_t led_state) {
+    rgblight_set_layer_state(0, led_state.caps_lock);
+    return true;
+}
+
 layer_state_t layer_state_set_user(layer_state_t state) {
-    switch (get_highest_layer(state)) {
-    case _SPECIAL:
-        rgblight_setrgb (0x00,  0xFF, 0x00);
-        break;
-    default: //  for any other layers, or the default layer
-        rgblight_setrgb (0x00,  0x00, 0xFF);
-        break;
-    }
-  return state;
-}
-
-static uint16_t caps_lock_blink_timer = 0;
-
-// This is called after every matrix scan. We make the backlight blink
-// when caps lock is on here. To ensure the backlight is in the on state
-// when caps lock is turned off, we also watch for the relase of the caps
-// lock key in process_record_user().
-void housekeeping_task_user(void) {
-    if (host_keyboard_led_state().caps_lock) {
-        if (timer_elapsed(caps_lock_blink_timer) >= CAPS_LOCK_BLINK_MS) {
-             backlight_toggle();
-            caps_lock_blink_timer = timer_read();
-        }
-    }
-}
-
-// Set default color for backlight
-void keyboard_post_init(void) {
-    rgblight_setrgb (0x00,  0x00, 0xFF);
+    rgblight_set_layer_state(1, layer_state_cmp(state, _SPECIAL));
+    return state;
 }
